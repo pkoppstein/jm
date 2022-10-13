@@ -4,13 +4,16 @@
 # Author: peak@princeton.edu
 # Author of JSON Machine: https://github.com/halaxa
 
-$jmVersion="0.0.4 of 2022.10.12";
+$jmVersion="0.0.5 of 2022.10.12";
 
 $bn=basename(__FILE__);
+$home = exec( 'echo ~' ) ;
 
 $dirs = array(
+  $home.'/vendor/autoload.php',
   __DIR__.'/vendor/autoload.php',
-  dirname(__DIR__).'/vendor/autoload.php' );
+  dirname(__DIR__).'/vendor/autoload.php'
+  );
 
 $autoload = '';	
 foreach ($dirs as &$value) {
@@ -18,7 +21,6 @@ foreach ($dirs as &$value) {
 }   
 
 if ($autoload == '') {
-  $home = exec( 'echo ~' ) ;
   $autoload = $home . '/github/json-machine/src/autoloader.php';
   if (is_file($autoload)) {
      spl_autoload_register(require $autoload);

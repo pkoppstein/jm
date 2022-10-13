@@ -63,7 +63,7 @@ The simplest way to install "JSON Machine" is to run:
 ```
 composer require halaxa/json-machine
 ```
-in the same directory in which you intend to install the `jm` script.
+in the user's home directory or in the same directory in which you intend to install the `jm` script.
 
 To install `composer`, you could try `brew install composer` using
 homebrew.  See also "Additional Documentation" below. 
