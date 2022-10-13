@@ -61,7 +61,7 @@ produces 2 and then 3.
 
 The simplest way to install "JSON Machine" is to run:
 ```
-composer require halaxa/json-machine`
+composer require halaxa/json-machine
 ```
 in the same directory in which you intend to install the `jm` script.
 
@@ -78,6 +78,14 @@ Otherwise, it can still be run as a PHP script, e.g. for help:
 ```
 php jm --help
 ```
+## Performance Comparison
+
+For a 10G file consisting of a single JSON array:
+
+* `vm` took 1.5 hours to run with minimal use of memory
+* `jq` with the `--stream` option took over 2.5 hours to produce the same results
+* `jq .[]' took 24 hours to finish
+* `jaq` ran out of memory
 
 ## Additional Documentation
 
