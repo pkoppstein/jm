@@ -4,7 +4,7 @@
 # Author: peak@princeton.edu
 # Author of JSON Machine: https://github.com/halaxa
 
-$jmVersion="0.0.3 of 2022.10.12";
+$jmVersion="0.0.4 of 2022.10.12";
 
 $bn=basename(__FILE__);
 
@@ -98,8 +98,8 @@ yields
 3
 
 Note that in the last example, the JSON Pointer "/-" points in turn to
-1 and then [2,3], and that streaming 1 produces 1, and streaming [2,3]
-produces 2 and then 3.
+the items in the top-level array (i.e. 1 and then [2,3]), and that
+streaming 1 produces 1, and streaming [2,3] produces 2 and then 3.
 
 {$bn} is based on JSON Machine. For further details, see documentation on:
 
