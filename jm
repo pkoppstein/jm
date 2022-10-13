@@ -20,7 +20,7 @@ foreach ($dirs as &$value) {
 if ($autoload == '') {
   $home = exec( 'echo ~' ) ;
   $autoload = $home . '/github/json-machine/src/autoloader.php';
-  if (is_file($home)) {
+  if (is_file($autoload)) {
      spl_autoload_register(require $autoload);
   } else {
       fwrite(STDERR, __FILE__ .
