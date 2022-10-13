@@ -1,0 +1,167 @@
+#!/usr/bin/env php
+<?php
+
+# Author: peak@princeton.edu
+# Author of JSON Machine: https://github.com/halaxa
+
+$jmVersion="0.0.3 of 2022.10.12";
+
+$bn=basename(__FILE__);
+
+$dirs = array(
+  __DIR__.'/vendor/autoload.php',
+  dirname(__DIR__).'/vendor/autoload.php' );
+
+$autoload = '';	
+foreach ($dirs as &$value) {
+  if (is_file($value)) { $autoload = $value; break; }
+}   
+
+if ($autoload == '') {
+  $home = exec( 'echo ~' ) ;
+  $autoload = $home . '/github/json-machine/src/autoloader.php';
+  if (is_file($home)) {
+     spl_autoload_register(require $autoload);
+  } else {
+      fwrite(STDERR, __FILE__ .
+       ': composer autoloader missing. Try running "composer require halaxa/json-machine".'."\n");
+    exit(1);
+  }
+} else {
+  require_once $autoload;
+}  
+
+use JsonMachine\Items;
+use JsonMachine\JsonDecoder\PassThruDecoder;
+
+function usage() {
+  global $bn;
+echo <<<END
+Usage: {$bn} [-s] [ --pointer=JSONPOINTER ] [ FILEPATH ... ]
+or:    {$bn} [-h | --help]
+where JSONPOINTER defaults to '' and FILEPATH defaults to stdin.
+\n
+END;
+}
+
+function help() {
+  global $bn, $jmVersion;  
+echo <<<END
+The -h option gives a usage summary, and --help gives more detailed help.
+The -s option directs that JSON objects be streamed as singleton (single-key) objects.
+
+One of the main uses of {$bn} is to stream losslessly a JSON array or
+JSON object that occurs at the top-level or within a very large JSON structure.
+
+In this document, streaming a JSON array is to be understood as
+producing a stream of the top-level items in the array (one line per
+item), and similarly, streaming a JSON object means producing a stream
+of the top-level values, or key-value singleton objects if the -s option is
+specified.  Streaming other JSON values simply means printing them.
+In particular, JSON numbers are handled literally.
+
+If no JSON Pointer is specified, or if it is specified as the empty
+string (""), then the top-level entity is streamed.
+
+If a JSON Pointer is specified, then all the corresponding entities
+are streamed successively, as illustrated in Example (5) below.
+
+Examples:
+(1) jm <<< '[1,"2", {"a": 4}, [5.0000000000000000000000000006]]'
+yields:
+
+1
+"2"
+{"a":4}
+[5.0000000000000000000000000006]
+
+(2) jm <<< '{"a": 1, "b": [2,3]}'
+yields
+
+1
+[2,3]
+
+(3) jm -s <<< '{"a": 1, "b": [2,3]}'
+yields
+
+{"a": 1}
+{"b": [2,3]}
+
+(4) jm --pointer "/results" <<< '{"results": {"a": 1, "b": [2,3]}}'
+yields the same stream as (2) above.
+
+(5) jm --pointer "/-" <<< '[1,[2,3]]'
+yields
+
+1
+2
+3
+
+Note that in the last example, the JSON Pointer "/-" points in turn to
+1 and then [2,3], and that streaming 1 produces 1, and streaming [2,3]
+produces 2 and then 3.
+
+{$bn} is based on JSON Machine. For further details, see documentation on:
+
+* "JSON Machine" e.g. https://github.com/halaxa/json-machine
+* "JSON Pointer" e.g. https://www.rfc-editor.org/rfc/rfc6901#section-5
+
+This is version {$jmVersion} of {$bn}.
+\n
+END;  
+  exit(0);
+}
+
+$options = getopt("hs", ['pointer:', 'help', 'debug'], $rest_index);
+
+$pointer_options = isset($options['pointer']) ? ["pointer" => $options['pointer']] : [];
+$pointer_options += ['decoder' => new PassThruDecoder ];
+
+$singleton_option = isset($options['s']);
+
+if (isset($options['help']))  { usage(); help(); exit(0); }
+if (isset($options['h']))     { usage(); exit(0); }
+
+if (isset($options['debug']) && isset($options['pointer'])) {
+   print "Note: JSONPOINTER is: " . $options['pointer'] . "\n";
+}
+
+function process_objects($filepath, $options) {
+  $iterator = Items::fromFile( $filepath, $options);
+  foreach ($iterator as $key => $value) {
+     if (gettype($key) == "integer") {
+        print $value . "\n";
+     } else {
+        print '{'. $key . ': ' . $value . "}\n";
+     }
+  }
+}
+
+function process($filepath, $options, $singleton_option) {
+  if ($singleton_option) { process_objects($filepath, $options); }
+  else {
+    $iterator = Items::fromFile( $filepath, $options);
+    foreach ($iterator as $row) {
+       echo $row . "\n";
+    }
+  }
+}
+
+$pos_args = array_slice($argv, $rest_index);
+
+$argx = count($pos_args);
+
+if ($argx == 0) { process('php://stdin', $pointer_options, $singleton_option); exit(0); }
+
+# Interpret the remaining arguments as filepaths if possible:
+# First check they are all there:
+foreach( $pos_args as &$filepath ) {
+  if (! is_file($filepath)) {
+    fwrite(STDERR, __FILE__ . ': specified file not found: ' . $filepath . "\n");
+    exit(1);
+  }
+}
+
+foreach( $pos_args as &$filepath ) {
+  process( $filepath, $pointer_options, $singleton_option );
+}
