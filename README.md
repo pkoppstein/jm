@@ -82,9 +82,9 @@ php jm --help
 
 For a 10G file consisting of a single JSON array:
 
-* `vm` took 1.5 hours to run with minimal use of memory
+* `jm` took 1.5 hours to run with minimal use of memory
 * `jq` with the `--stream` option took over 2.5 hours to produce the same results
-* `jq .[]' took 24 hours to finish
+* `jq .[]` took 24 hours to finish
 * `jaq` ran out of memory
 
 ## Additional Documentation
