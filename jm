@@ -1,10 +1,12 @@
 #!/usr/bin/env php
 <?php
 
-# Author: peak@princeton.edu
-# Author of JSON Machine: https://github.com/halaxa
+# (C) Copyright Peter Koppstein (peak@princeton.edu)
+# License: Apache License 2.0 (see website)
+# Website: https://github.com/pkoppstein/jm
+# Special thanks to https://github.com/halaxa, the creator of "JSON Machine".
 
-$jmVersion="0.0.5 of 2022.10.12";
+$jmVersion="0.0.6 of 2022.10.14";
 
 $bn=basename(__FILE__);
 $home = exec( 'echo ~' ) ;
@@ -39,9 +41,13 @@ use JsonMachine\JsonDecoder\PassThruDecoder;
 function usage() {
   global $bn;
 echo <<<END
-Usage: {$bn} [-s] [ --pointer=JSONPOINTER ] [ FILEPATH ... ]
+Usage: {$bn} [ OPTIONS ]  [ FILEPATH ... ]
 or:    {$bn} [-h | --help]
-where JSONPOINTER defaults to '' and FILEPATH defaults to stdin.
+where JSONPOINTER defaults to '' and FILEPATH defaults to stdin, and the options are:
+     -s
+     --bigint_as_string | --recode
+     --limit=LIMIT
+     --pointer=JSONPOINTER
 \n
 END;
 }
@@ -51,22 +57,35 @@ function help() {
 echo <<<END
 The -h option gives a usage summary, and --help gives more detailed help.
 The -s option directs that JSON objects be streamed as singleton (single-key) objects.
+The long options are described below.
 
 One of the main uses of {$bn} is to stream losslessly a JSON array or
 JSON object that occurs at the top-level or within a very large JSON structure.
 
 In this document, streaming a JSON array is to be understood as
 producing a stream of the top-level items in the array (one line per
-item), and similarly, streaming a JSON object means producing a stream
-of the top-level values, or key-value singleton objects if the -s option is
-specified.  Streaming other JSON values simply means printing them.
-In particular, JSON numbers are handled literally.
+item); similarly, streaming a JSON object means producing a stream of
+the top-level values or of the key-value singleton objects if the -s
+option is specified.  Streaming other JSON values simply means
+printing them, though the way in which JSON numbers are printed
+depends on the mutually exclusive `--recode` and `--bigint_as_string` options:
 
+  * --recode causes all JSON numbers to be presented as PHP numeric values
+      with the potential loss of information this implies;
+  * --bigint_as_string causes JSON "big integers" to be converted to
+      strings to avoid loss of information, but other numbers will be
+      converted to PHP numeric values;
+  * if neither of these options is specified, the literal form of numbers is preserved.
+  
 If no JSON Pointer is specified, or if it is specified as the empty
 string (""), then the top-level entity is streamed.
 
 If a JSON Pointer is specified, then all the corresponding entities
-are streamed successively, as illustrated in Example (5) below.
+are streamed successively, as illustrated in Example (6) below.
+
+The --limit option limits the total number of lines that are emitted
+by this script when streaming to the specified number.
+
 
 Examples:
 (1) jm <<< '[1,"2", {"a": 4}, [5.0000000000000000000000000006]]'
@@ -92,7 +111,13 @@ yields
 (4) jm --pointer "/results" <<< '{"results": {"a": 1, "b": [2,3]}}'
 yields the same stream as (2) above.
 
-(5) jm --pointer "/-" <<< '[1,[2,3]]'
+(5) jm --bigint_as_string <<< '[10000000000000000000002, 3.0000000000000000000004]'
+yields
+
+"10000000000000000000002"
+3
+
+(6) jm --pointer "/-" <<< '[1,[2,3]]'
 yields
 
 1
@@ -114,37 +139,70 @@ END;
   exit(0);
 }
 
-$options = getopt("hs", ['pointer:', 'help', 'debug'], $rest_index);
-
-$pointer_options = isset($options['pointer']) ? ["pointer" => $options['pointer']] : [];
-$pointer_options += ['decoder' => new PassThruDecoder ];
+$options = getopt("hs", ['pointer:', 'help', 'bigint_as_string', 'debug', 'limit:', 'recode'], $rest_index);
 
 $singleton_option = isset($options['s']);
+$limit_option = isset($options['limit']) ? $options['limit'] : false;
+$recode_option = isset($options['recode']);
+$bigint_option = isset($options['bigint_as_string']);
+
+# Disallow: --bigint_as_string --recode
+if ($recode_option && $bigint_option) {
+      fwrite(STDERR, __FILE__ .
+       ": at most one of the --recode and --bigint_as_string options may be specified.\n");
+  exit(2);
+}
+$pointer_options = isset($options['pointer']) ? ["pointer" => $options['pointer']] : [];
+
+# By default, use the PassThruDecoder
+if (! $recode_option) {$pointer_options += ['decoder' => new PassThruDecoder ]; }
 
 if (isset($options['help']))  { usage(); help(); exit(0); }
 if (isset($options['h']))     { usage(); exit(0); }
 
-if (isset($options['debug']) && isset($options['pointer'])) {
-   print "Note: JSONPOINTER is: " . $options['pointer'] . "\n";
+## Debugging info:
+if (isset($options['debug'])) {
+   if ($recode_option) { print "NOTE: --recode option was specified\n"; }
+   if ($bigint_option) { print "NOTE: --bigint_as_integer was specified\n"; }
+   if ($limit_option) { print "NOTE: --limit={$limit_option} was specified\n"; }   
+   if (isset($options['pointer'])) {
+     print "Note: JSONPOINTER is: " . $options['pointer'] . "\n";
+   }
+}
+
+# Down the recoding rabbit hole:
+function tweak($value) {
+  global $bigint_option;
+  global $recode_option;
+  # var_dump($value);
+  if ($recode_option) { return json_encode($value); }
+  if ($bigint_option) { return json_encode(json_decode($value, flags: JSON_BIGINT_AS_STRING)); }
+  return $value; 
 }
 
 function process_objects($filepath, $options) {
+  global $limit_option;
+  $i=0;
   $iterator = Items::fromFile( $filepath, $options);
   foreach ($iterator as $key => $value) {
      if (gettype($key) == "integer") {
-        print $value . "\n";
+        print tweak($key) . "\n";
      } else {
-        print '{'. $key . ': ' . $value . "}\n";
+        print '{'. $key . ': ' . tweak($value) . "}\n";
      }
+     if ($limit_option && (++$i >= $limit_option)) {break;}
   }
 }
 
 function process($filepath, $options, $singleton_option) {
+  global $limit_option;
   if ($singleton_option) { process_objects($filepath, $options); }
   else {
+    $i=0;
     $iterator = Items::fromFile( $filepath, $options);
     foreach ($iterator as $row) {
-       echo $row . "\n";
+       echo tweak($row) . "\n";
+       if ($limit_option && (++$i >= $limit_option)) {break;}
     }
   }
 }

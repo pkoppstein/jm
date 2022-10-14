@@ -1,19 +1,27 @@
 # jm
 
-`jm` is a PHP script for losslessly streaming JSON arrays or JSON objects,
-even in very large JSON structures. It is based on, and requires the installation of,
-[JSON Machine](https://github.com/halaxa/json-machine), but once installed
+`jm` is a script which makes it easy to stream JSON arrays or JSON
+objects losslessly, even if they occur in very large JSON
+structures. It is based on, and requires, the installation of, [JSON
+Machine](https://github.com/halaxa/json-machine), but once installed
 is typically trivial or very easy to use.
 
 In this document, streaming a JSON array is to be understood as
 producing a stream of the top-level items in the array (one line per
 item), and similarly, streaming a JSON object means producing a stream
-of the top-level values, or key-value singleton objects if the -s option is
-specified.  Streaming other JSON values simply means printing them.
-In particular, JSON numbers are handled literally.
+of the top-level values, or of the corresponding key-value singleton
+objects if the -s option is specified.  Streaming other JSON values
+simply means printing them, though the way in which JSON numbers are
+printed depends on the `--recode` and `--bigint_as_string` options,
+which are mutually exclusive:
 
-"Losslessly" means without loss of numeric precision.
-
+  * --recode causes all JSON numbers to be presented as PHP numeric values
+      with the potential loss of information this implies;
+  * --bigint_as_string causes JSON "big integers" to be converted to
+      strings to avoid loss of information, but other numbers will be
+      converted to PHP numeric values;
+  * if neither of these options is specified, the literal form of numbers is preserved.
+  
 Once installed with its pre-requisites, the script is self-documenting
 via the `--help` command-line option, but here are some examples.
 
@@ -35,7 +43,6 @@ yields
 ```
 (3) jm -s <<< '{"a": 1, "b": [2,3]}'
 yields
-
 {"a": 1}
 {"b": [2,3]}
 ```
@@ -44,7 +51,13 @@ yields
 yields the same stream as (2) above.
 ```
 ```
-(5) jm --pointer "/-" <<< '[1,[2,3]]'
+(5) jm --bigint_as_string <<< '[10000000000000000000002, 3.0000000000000000000004]'
+yields
+"10000000000000000000002"
+3
+```
+```
+(6) jm --pointer "/-" <<< '[1,[2,3]]'
 yields
 1
 2
@@ -68,8 +81,9 @@ in the user's home directory or in the same directory in which you intend to ins
 To install `composer`, you could try `brew install composer` using
 homebrew.  See also "Additional Documentation" below. 
 
-If you wish to clone or download the JSON Machine repository,
-then `jm` will assume it resides in the directory `~/github/json-machine`.
+If you wish to clone or download the JSON Machine repository instead
+of installing it using `composer`, then please note that `jm` will
+assume it resides in the directory `~/github/json-machine/`.
 
 (2) Download the file named `jm` from this repository.
 
@@ -96,5 +110,3 @@ For a 10G file consisting of a single JSON array:
 
 ## Acknowledgements
 Special thanks to https://github.com/halaxa, the creator of "JSON Machine".
-
-
