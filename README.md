@@ -2,7 +2,7 @@
 
 `jm` is a script which makes it easy to stream JSON arrays or JSON
 objects losslessly, even if they occur in very large JSON
-structures. It is based on, and requires, the installation of, [JSON
+structures. It is based on, and requires the installation of, [JSON
 Machine](https://github.com/halaxa/json-machine), but once installed
 is typically trivial or very easy to use.
 
@@ -21,9 +21,9 @@ which are mutually exclusive:
       strings to avoid loss of information, but other numbers will be
       converted to PHP numeric values;
   * if neither of these options is specified, the literal form of numbers is preserved.
-  
-Once installed with its pre-requisites, the script is self-documenting
-via the `--help` command-line option, but here are some examples.
+
+There are several other options, which are described in the
+documentation produced by the --help command-line option of `jm`.
 
 ## Examples:
 ```
