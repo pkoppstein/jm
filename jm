@@ -4,9 +4,9 @@
 # (C) Copyright Peter Koppstein (peak@princeton.edu)
 # License: Apache License 2.0 (see website)
 # Website: https://github.com/pkoppstein/jm
-# Special thanks to https://github.com/halaxa, the creator of "JSON Machine".
+# With special thanks to https://github.com/halaxa, the creator of "JSON Machine".
 
-$jmVersion="0.0.6.1 of 2022.10.14";
+$jmVersion="0.0.7 of 2022.10.14";
 
 $bn=basename(__FILE__);
 $home = exec( 'echo ~' ) ;
@@ -43,8 +43,9 @@ function usage() {
 echo <<<END
 Usage: {$bn} [ OPTIONS ]  [ FILEPATH ... ]
 or:    {$bn} [-h | --help]
-where JSONPOINTER defaults to '' and FILEPATH defaults to stdin, and the options are:
+where JSONPOINTER defaults to '' and FILEPATH defaults to stdin, and the other options are:
      -s
+     --array
      --bigint_as_string | --recode
      --count | --limit=LIMIT
      --pointer=JSONPOINTER
@@ -81,7 +82,9 @@ If no JSON Pointer is specified, or if it is specified as the empty
 string (""), then the top-level entity is streamed.
 
 If a JSON Pointer is specified, then all the corresponding entities
-are streamed successively, as illustrated in Example (6) below.
+are streamed successively, as illustrated in Example (7) below.
+
+The --array option causes the streamed items to be presented as a JSON array.
 
 The --count option specifies that for each input source or file, the
 count of the number of lines that would be emitted by this script when
@@ -89,7 +92,7 @@ streaming should be printed instead; for each file, the count is
 preceded by the file name.
 
 The --limit option limits the total number of lines that are emitted
-by this script, per input file, to the specified number when streaming.
+by this script per input file, when streaming.
 
 
 Examples:
@@ -122,7 +125,15 @@ yields
 "10000000000000000000002"
 3
 
-(6) jm --pointer "/-" <<< '[1,[2,3]]'
+(6) jm --array <<< '{"a": 1, "b": [2,3]}'
+yields
+
+[
+1,
+[2,3]
+]
+
+(7) jm --pointer "/-" <<< '[1,[2,3]]'
 yields
 
 1
@@ -144,13 +155,15 @@ END;
   exit(0);
 }
 
-$options = getopt("hs", ['pointer:', 'help', 'bigint_as_string', 'debug', 'count', 'limit:', 'recode'], $rest_index);
+$options = getopt("hs", ['debug', 'help', 'array', 'bigint_as_string', 'count', 'limit:', 'pointer:', 'recode'], $rest_index);
 
 $singleton_option = isset($options['s']);
 $limit_option = isset($options['limit']) ? $options['limit'] : false;
 $count_option = isset($options['count']);
 $recode_option = isset($options['recode']);
 $bigint_option = isset($options['bigint_as_string']);
+$array_option = isset($options['array']);
+$suffix = isset($options['array']) ? ",\n" : "\n";
 
 # Disallow: --bigint_as_string --recode
 if ($recode_option && $bigint_option) {
@@ -196,6 +209,8 @@ function tweak($value) {
 function process_objects($filepath, $options) {
   global $limit_option;
   global $count_option;
+  global $array_option;
+  global $suffix;
   $preface = ($filepath == "php://stdin") ? "" : $filepath. ": ";
   $i=0;
   $iterator = Items::fromFile( $filepath, $options);
@@ -205,19 +220,27 @@ function process_objects($filepath, $options) {
     return;
   }
 
+  if ($array_option) { print "[\n"; }
   foreach ($iterator as $key => $value) {
      if (gettype($key) == "integer") {
-        print tweak($key) . "\n";
+        if ($i > 0 ) { print $suffix; }
+	print tweak($key);
      } else {
-        print '{'. $key . ': ' . tweak($value) . "}\n";
+        if ($i > 0 ) { print $suffix; }
+        print '{'. $key . ': ' . tweak($value) . "}" ;
      }
-     if ($limit_option && (++$i >= $limit_option)) {break;}
+     $i++;
+     if ($limit_option && ($i >= $limit_option)) {break;}
   }
+  if ($array_option) { print "\n]\n"; } else {print "\n";}
 }
 
 function process($filepath, $options, $singleton_option) {
   global $limit_option;
   global $count_option;
+  global $array_option;
+  global $suffix;
+
   if ($singleton_option) { process_objects($filepath, $options); }
   else {
     $preface = ($filepath == "php://stdin") ? "" : $filepath. ": ";
@@ -225,14 +248,18 @@ function process($filepath, $options, $singleton_option) {
     $iterator = Items::fromFile( $filepath, $options);
     if ($count_option) {
       foreach ($iterator as $key => $value) {  $i++; }
-      print $preface . $i."\n";
+      print $preface . $i . "\n";
       return;
     }
 
+    if ($array_option) { print "[\n"; }
     foreach ($iterator as $row) {
-       echo tweak($row) . "\n";
-       if ($limit_option && (++$i >= $limit_option)) {break;}
+       if ($i > 0) { echo $suffix; }
+       echo tweak($row);
+       $i++;
+       if ($limit_option && ($i >= $limit_option)) {break;}
     }
+    if ($array_option) { print "\n]\n"; } else {print "\n";}
   }
 }
 
