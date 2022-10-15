@@ -6,7 +6,7 @@
 # Website: https://github.com/pkoppstein/jm
 # Special thanks to https://github.com/halaxa, the creator of "JSON Machine".
 
-$jmVersion="0.0.6 of 2022.10.14";
+$jmVersion="0.0.6.1 of 2022.10.14";
 
 $bn=basename(__FILE__);
 $home = exec( 'echo ~' ) ;
@@ -46,7 +46,7 @@ or:    {$bn} [-h | --help]
 where JSONPOINTER defaults to '' and FILEPATH defaults to stdin, and the options are:
      -s
      --bigint_as_string | --recode
-     --limit=LIMIT
+     --count | --limit=LIMIT
      --pointer=JSONPOINTER
 \n
 END;
@@ -83,8 +83,13 @@ string (""), then the top-level entity is streamed.
 If a JSON Pointer is specified, then all the corresponding entities
 are streamed successively, as illustrated in Example (6) below.
 
+The --count option specifies that for each input source or file, the
+count of the number of lines that would be emitted by this script when
+streaming should be printed instead; for each file, the count is
+preceded by the file name.
+
 The --limit option limits the total number of lines that are emitted
-by this script when streaming to the specified number.
+by this script, per input file, to the specified number when streaming.
 
 
 Examples:
@@ -139,10 +144,11 @@ END;
   exit(0);
 }
 
-$options = getopt("hs", ['pointer:', 'help', 'bigint_as_string', 'debug', 'limit:', 'recode'], $rest_index);
+$options = getopt("hs", ['pointer:', 'help', 'bigint_as_string', 'debug', 'count', 'limit:', 'recode'], $rest_index);
 
 $singleton_option = isset($options['s']);
 $limit_option = isset($options['limit']) ? $options['limit'] : false;
+$count_option = isset($options['count']);
 $recode_option = isset($options['recode']);
 $bigint_option = isset($options['bigint_as_string']);
 
@@ -152,6 +158,13 @@ if ($recode_option && $bigint_option) {
        ": at most one of the --recode and --bigint_as_string options may be specified.\n");
   exit(2);
 }
+# Disallow: --count --limit
+if ($count_option && $limit_option) {
+      fwrite(STDERR, __FILE__ .
+       ": at most one of the --count and --limit options may be specified.\n");
+  exit(2);
+}
+
 $pointer_options = isset($options['pointer']) ? ["pointer" => $options['pointer']] : [];
 
 # By default, use the PassThruDecoder
@@ -182,8 +195,16 @@ function tweak($value) {
 
 function process_objects($filepath, $options) {
   global $limit_option;
+  global $count_option;
+  $preface = ($filepath == "php://stdin") ? "" : $filepath. ": ";
   $i=0;
   $iterator = Items::fromFile( $filepath, $options);
+  if ($count_option) {
+    foreach ($iterator as $key => $value) {  $i++; }
+    print $preface . $i ."\n";
+    return;
+  }
+
   foreach ($iterator as $key => $value) {
      if (gettype($key) == "integer") {
         print tweak($key) . "\n";
@@ -196,10 +217,18 @@ function process_objects($filepath, $options) {
 
 function process($filepath, $options, $singleton_option) {
   global $limit_option;
+  global $count_option;
   if ($singleton_option) { process_objects($filepath, $options); }
   else {
+    $preface = ($filepath == "php://stdin") ? "" : $filepath. ": ";
     $i=0;
     $iterator = Items::fromFile( $filepath, $options);
+    if ($count_option) {
+      foreach ($iterator as $key => $value) {  $i++; }
+      print $preface . $i."\n";
+      return;
+    }
+
     foreach ($iterator as $row) {
        echo tweak($row) . "\n";
        if ($limit_option && (++$i >= $limit_option)) {break;}
