@@ -6,7 +6,10 @@
 # Website: https://github.com/pkoppstein/jm
 # With special thanks to https://github.com/halaxa, the creator of "JSON Machine".
 
-$jmVersion="0.0.7 of 2022.10.14";
+$jmVersion="0.0.8 of 2022.10.15";
+
+# NEWS:
+# 0.0.8 allow process file descriptors
 
 $bn=basename(__FILE__);
 $home = exec( 'echo ~' ) ;
@@ -49,6 +52,7 @@ where JSONPOINTER defaults to '' and FILEPATH defaults to stdin, and the other o
      --bigint_as_string | --recode
      --count | --limit=LIMIT
      --pointer=JSONPOINTER
+     --version
 \n
 END;
 }
@@ -82,7 +86,7 @@ If no JSON Pointer is specified, or if it is specified as the empty
 string (""), then the top-level entity is streamed.
 
 If a JSON Pointer is specified, then all the corresponding entities
-are streamed successively, as illustrated in Example (7) below.
+are streamed successively, as illustrated in Example (8) below.
 
 The --array option causes the streamed items to be presented as a JSON array.
 
@@ -133,7 +137,13 @@ yields
 [2,3]
 ]
 
-(7) jm --pointer "/-" <<< '[1,[2,3]]'
+(7) jm --recode <(echo '[1.000000000000000001,20000000000000000003]')
+yields
+
+1
+2.0e+19
+
+(8) jm --pointer "/-" <<< '[1,[2,3]]'
 yields
 
 1
@@ -155,7 +165,15 @@ END;
   exit(0);
 }
 
-$options = getopt("hs", ['debug', 'help', 'array', 'bigint_as_string', 'count', 'limit:', 'pointer:', 'recode'], $rest_index);
+$options = getopt("hs", ['debug', 'help', 'array', 'bigint_as_string', 'count', 'limit:', 'pointer:', 'recode', 'version'], $rest_index);
+
+if (isset($options['help']))  { usage(); help(); exit(0); }
+if (isset($options['h']))     { usage(); exit(0); }
+
+if (isset($options['version'])) {
+  print "$bn version ${jmVersion}\n";
+  exit(0);
+}
 
 $singleton_option = isset($options['s']);
 $limit_option = isset($options['limit']) ? $options['limit'] : false;
@@ -183,8 +201,6 @@ $pointer_options = isset($options['pointer']) ? ["pointer" => $options['pointer'
 # By default, use the PassThruDecoder
 if (! $recode_option) {$pointer_options += ['decoder' => new PassThruDecoder ]; }
 
-if (isset($options['help']))  { usage(); help(); exit(0); }
-if (isset($options['h']))     { usage(); exit(0); }
 
 ## Debugging info:
 if (isset($options['debug'])) {
@@ -269,9 +285,15 @@ $argx = count($pos_args);
 
 if ($argx == 0) { process('php://stdin', $pointer_options, $singleton_option); exit(0); }
 
-# Interpret the remaining arguments as filepaths if possible:
-# First check they are all there:
+# Interpret the remaining arguments as filepaths or process file descriptors (/dev/fd/...) if possible.
 foreach( $pos_args as &$filepath ) {
+  if (preg_match('!^/dev/fd/[0-9]*$!', $filepath)) {
+    if (file_exists($filepath)) { continue; }
+    else {
+      fwrite(STDERR, __FILE__ . ': specified process file descriptor not found: ' . $filepath . "\n");
+      exit(1);
+    }   
+  }
   if (! is_file($filepath)) {
     fwrite(STDERR, __FILE__ . ': specified file not found: ' . $filepath . "\n");
     exit(1);

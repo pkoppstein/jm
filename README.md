@@ -32,6 +32,7 @@ where JSONPOINTER defaults to '' and FILEPATH defaults to stdin, and the other o
      --bigint_as_string | --recode
      --count | --limit=LIMIT
      --pointer=JSONPOINTER
+	 --version
 ```
 Details about the options are given in the documentation produced by
 the `--help` command-line option.
@@ -76,7 +77,13 @@ yields
 ]
 ```
 ```
-(7) jm --pointer "/-" <<< '[1,[2,3]]'
+(7) jm --recode <(echo '[1.000000000000000001,20000000000000000003]')
+yields
+1
+2.0e+19
+```
+```
+(8) jm --pointer "/-" <<< '[1,[2,3]]'
 yields
 1
 2
@@ -91,14 +98,15 @@ produces 2 and then 3.
 
 (1) Install "JSON Machine"
 
-The simplest way to install "JSON Machine" is to run:
+The simplest way to install "JSON Machine" is usually to run:
 ```
 composer require halaxa/json-machine
 ```
 in the user's home directory or in the same directory in which you intend to install the `jm` script.
 
 To install `composer`, you could try `brew install composer` using
-homebrew.  See also "Additional Documentation" below. 
+homebrew.  See "Additional Documentation" below for further details
+and alternatives.
 
 If you wish to clone or download the JSON Machine repository instead
 of installing it using `composer`, then please note that `jm` will
