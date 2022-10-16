@@ -22,10 +22,21 @@ which are mutually exclusive:
       converted to PHP numeric values;
   * if neither of these options is specified, the literal form of numbers is preserved.
 
-There are several other options, which are described in the
-documentation produced by the --help command-line option of `jm`.
+### Synopsis
+```
+Usage: jm [ OPTIONS ]  [ FILEPATH ... ]
+or:    jm [-h | --help]
+where JSONPOINTER defaults to '' and FILEPATH defaults to stdin, and the other options are:
+     -s
+     --array
+     --bigint_as_string | --recode
+     --count | --limit=LIMIT
+     --pointer=JSONPOINTER
+```
+Details about the options are given in the documentation produced by
+the `--help` command-line option.
 
-## Examples:
+### Examples:
 ```
 (1) jm <<< '[1,"2", {"a": 4}, [5.0000000000000000000000000006]]'
 yields:
@@ -76,7 +87,7 @@ the items in the top-level array (i.e. 1 and then [2,3]), and that streaming 1 p
 produces 2 and then 3.
 
 
-## Installation
+### Installation
 
 (1) Install "JSON Machine"
 
@@ -100,7 +111,7 @@ Otherwise, it can still be run as a PHP script, e.g. for help:
 ```
 php jm --help
 ```
-## Performance Comparison
+### Performance Comparison
 
 For a 10G file consisting of a single JSON array:
 
@@ -109,12 +120,12 @@ For a 10G file consisting of a single JSON array:
 * `jq .[]` took 24 hours to finish
 * `jaq` ran out of memory
 
-## Additional Documentation
+### Additional Documentation
 
 * "JSON Machine" e.g. https://github.com/halaxa/json-machine
 * "JSON Pointer" e.g. https://www.rfc-editor.org/rfc/rfc6901#section-5
 * composer       e.g. https://getcomposer.org/doc/00-intro.md
 * homebrew       e.g. https://brew.sh
 
-## Acknowledgements
+### Acknowledgements
 Special thanks to https://github.com/halaxa, the creator of "JSON Machine".
