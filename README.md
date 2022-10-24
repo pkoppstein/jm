@@ -123,10 +123,13 @@ php jm --help
 
 For a 10G file consisting of a single JSON array:
 
-* `jm` took 1.5 hours to run with minimal use of memory
+* `jm` took 90 minutes to run with minimal use of memory
 * `jq` with the `--stream` option took over 2.5 hours to produce the same results
 * `jq .[]` took 24 hours to finish
 * `jaq` ran out of memory
+* `jstream -d 1` took 79 minutes with minimal use of memory
+
+Times shown are u+s times. [jstream](https://github.com/bcicen/jstream) does not always preserve integer precision.
 
 ### Additional Documentation
 
