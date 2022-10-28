@@ -1,10 +1,10 @@
 # jm
 
-`jm` is a script which makes it easy to stream JSON arrays or JSON
-objects losslessly, even if they occur in very large JSON
-structures. It is based on, and requires the installation of, [JSON
-Machine](https://github.com/halaxa/json-machine), but once installed
-is typically trivial or very easy to use.
+`jm` is a script which makes it easy to splat (that is, to stream)
+JSON arrays or JSON objects losslessly, even if they occur in very
+large JSON structures. It is based on, and requires the installation
+of, [JSON Machine](https://github.com/halaxa/json-machine), but once
+installed is typically trivial or very easy to use.
 
 In this document, streaming a JSON array is to be understood as
 producing a stream of the top-level items in the array (one line per
@@ -26,13 +26,15 @@ which are mutually exclusive:
 ```
 Usage: jm [ OPTIONS ]  [ FILEPATH ... ]
 or:    jm [-h | --help]
-where JSONPOINTER defaults to '' and FILEPATH defaults to stdin, and the other options are:
+where FILEPATH defaults to stdin, and the other options are:
      -s
      --array
      --bigint_as_string | --recode
      --count | --limit=LIMIT
      --pointer=JSONPOINTER
-	 --version
+     --version
+
+If specified, JSONPOINTER should be a valid JSON Pointer.
 ```
 Details about the options are given in the documentation produced by
 the `--help` command-line option.
