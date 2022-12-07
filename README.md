@@ -1,19 +1,53 @@
-# jm
+# jm and jm.py
 
-`jm` is a script which makes it easy to splat (that is, to stream)
-JSON arrays or JSON objects losslessly, even if they occur in very
-large JSON structures. It is based on, and requires the installation
-of, [JSON Machine](https://github.com/halaxa/json-machine), but once
-installed is typically trivial or very easy to use.
+`jm` and `jm.py` are scripts which make it easy to splat (that is, to
+stream) JSON arrays or JSON objects losslessly, even if they occur in
+very large JSON structures.  (Losslessly here refers primarily to
+numeric precision, not the handling of duplicate keys within JSON
+objects.)
 
+Once installed, each script is typically trivial or very easy to use, e.g.
+to splat the top-level array of a JSON document in a file named
+input.json one could write:
+
+    jm input.json
+
+or
+
+    jm.py input.json
+
+For large inputs, `jm` is typically about 3 times faster than `jm.py` and
+consumes significantly less memory, but Pythonistas might find `jm.py`
+of interest as it is easy to modify.
+
+`jm` requires PHP and requires the installation of
+[JSON Machine](https://github.com/halaxa/json-machine) package.
+
+`jm.py` requires Python 3, and requires the installation of the
+[ijson](https://pypi.org/project/ijson) package.
+
+## Terminology
 In this document, streaming a JSON array is to be understood as
 producing a stream of the top-level items in the array (one line per
 item), and similarly, streaming a JSON object means producing a stream
 of the top-level values, or of the corresponding key-value singleton
 objects if the -s option is specified.  Streaming other JSON values
-simply means printing them, though the way in which JSON numbers are
-printed depends on the `--recode` and `--bigint_as_string` options,
-which are mutually exclusive:
+simply means printing them.
+
+## jm and jm.py similarities and differences
+The two scripts are quite similar in terms of capabilties and
+typical usage, but there are important differences, notably in the way
+paths to subdocuments are specified: jm uses JSONPATH, whereas jm.py
+has a less comprehensive notation.  As already illustrated, however,
+typically no path need be specified at all.
+
+### Numbers
+
+`jm.py` preserves the precision of numbers, at least to the extent that
+the ijson and simplejson packages allow.
+
+The way in which `jm` prints JSON numbers depends on the `--recode`
+and `--bigint_as_string` options, which are mutually exclusive:
 
   * --recode causes all JSON numbers to be presented as PHP numeric values
       with the potential loss of information this implies;
@@ -22,7 +56,7 @@ which are mutually exclusive:
       converted to PHP numeric values;
   * if neither of these options is specified, the literal form of numbers is preserved.
 
-### Synopsis
+### Synopsis of jm
 ```
 Usage: jm [ OPTIONS ]  [ FILEPATH ... ]
 or:    jm [-h | --help]
@@ -36,12 +70,44 @@ where FILEPATH defaults to stdin, and the other options are:
 
 If specified, JSONPOINTER should be a valid JSON Pointer.
 ```
-Details about the options are given in the documentation produced by
-the `--help` command-line option.
+
+For details, simply invoke the script with the --help option, or
+review the documentation contained within the script itself.
+
+### Synopsis of jm.py
+```
+usage: jm.py [-h] [-i IPATH] [-s] [--values] [-k] [--count] [--limit LIMIT] [--tag KEYNAME] [-v] [-V] [filename ...]
+
+Stream a JSON array or object.
+
+positional arguments:
+  filename
+
+options:
+  -h, --help            show this help message and exit
+  -i IPATH, --ipath IPATH
+                        the ijson path to the object or array to be streamed
+  -s, --singleton       stream JSON objects as single-key objects
+  --values              stream JSON objects by printing the values of their keys
+  -k, --keys            stream JSON objects by printing their keys
+  --count               count the number of lines that would be printed
+  --limit LIMIT         limit the number of JSON values (lines) printed
+  --tag KEYNAME         instead of emitting a line X of JSON, emit TAG<tab>X where TAG is determined by KEYNAME (see below)
+  -v                    verbose mode
+  -V, --version         show program's version number and exit
+
+The --limit and --count options are mutually exclusive,
+as are the --tag, --s, --keys and --values options.
+
+```
+For details, simply invoke the script with the --help option, or
+review the documentation contained within the script itself.
 
 ### Examples:
+In these examples, $JM means that jm and jm.py  can be
+used interchangeably.
 ```
-(1) jm <<< '[1,"2", {"a": 4}, [5.0000000000000000000000000006]]'
+(1) $JM <<< '[1,"2", {"a": 4}, [5.0000000000000000000000000006]]'
 yields:
 1
 "2"
@@ -50,19 +116,30 @@ yields:
 ```
 ```
 (2) jm <<< '{"a": 1, "b": [2,3]}'
-yields
+is equivalent to
+./jm.py --ipath '' --values <<< '{"a": 1, "b": [2,3]}'
+
+Both yield:
 1
 [2,3]
 ```
+
 ```
 (3) jm -s <<< '{"a": 1, "b": [2,3]}'
-yields
+is equivalent to
+./jm.py --ipath '' -s <<< '{"a": 1, "b": [2,3]}'
+
+Both yield:
 {"a": 1}
 {"b": [2,3]}
 ```
+
 ```
 (4) jm --pointer "/results" <<< '{"results": {"a": 1, "b": [2,3]}}'
-yields the same stream as (2) above.
+is equivalent to
+./jm.py -s --ipath "results" <<< '{"results": {"a": 1, "b": [2,3]}}'
+
+Both yield the same stream as (2) above.
 ```
 ```
 (5) jm --bigint_as_string <<< '[10000000000000000000002, 3.0000000000000000000004]'
@@ -96,7 +173,7 @@ the items in the top-level array (i.e. 1 and then [2,3]), and that streaming 1 p
 produces 2 and then 3.
 
 
-### Installation
+### Installation of jm
 
 (1) Install "JSON Machine"
 
@@ -121,11 +198,28 @@ Otherwise, it can still be run as a PHP script, e.g. for help:
 ```
 php jm --help
 ```
+
+### Installation of jm.py
+
+1) Ensure that both simplejson and ijson are installed, e.g.:
+
+    pip install simplejson
+    pip install ijson
+
+2) Download the file named `jm.py` in the bin directory of this repository.
+
+If at all possible, ensure it is executable (e.g. `chmod +x jm.py`).
+Otherwise, it can still be run as a python3 script, e.g. for help:
+```
+python3 jm.py --help
+```
+
 ### Performance Comparison
 
 For a 10G file consisting of a single JSON array:
 
 * `jm` took 90 minutes to run with minimal use of memory
+* `jm.py` took 2.4 hours to run with a maximum resident set size of 123MB
 * `jq` with the `--stream` option took over 2.5 hours to produce the same results
 * `jq .[]` took 24 hours to finish
 * `jaq` ran out of memory
@@ -142,3 +236,5 @@ Times shown are u+s times. [jstream](https://github.com/bcicen/jstream) does not
 
 ### Acknowledgements
 Special thanks to https://github.com/halaxa, the creator of "JSON Machine".
+
+Thanks also to the creators and maintainers of ijson.
