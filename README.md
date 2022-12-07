@@ -16,7 +16,7 @@ or
 
     jm.py input.json
 
-For large inputs, `jm` is typically about 3 times faster than `jm.py` and
+For large inputs, `jm` is typically 3 or more times faster than `jm.py` and
 consumes significantly less memory, but Pythonistas might find `jm.py`
 of interest as it is easy to modify.
 
@@ -61,14 +61,17 @@ and `--bigint_as_string` options, which are mutually exclusive:
 Usage: jm [ OPTIONS ]  [ FILEPATH ... ]
 or:    jm [-h | --help]
 where FILEPATH defaults to stdin, and the other options are:
-     -s
+     -s | --tag KEYNAME
      --array
      --bigint_as_string | --recode
      --count | --limit=LIMIT
      --pointer=JSONPOINTER
      --version
 
-If specified, JSONPOINTER should be a valid JSON Pointer.
+JSONPOINTER defaults to ''.
+
+The --tag option precludes the --array and -s options.
+
 ```
 
 For details, simply invoke the script with the --help option, or
@@ -218,12 +221,13 @@ python3 jm.py --help
 
 For a 10G file consisting of a single JSON array:
 
-* `jm` took 90 minutes to run with minimal use of memory
-* `jm.py` took 2.4 hours to run with a maximum resident set size of 123MB
-* `jq` with the `--stream` option took over 2.5 hours to produce the same results
+* `jstream -d 1` took 79 minutes with a small memory footprint (7MB maximum resident set size)
+* `jm` took 90 minutes to run with minimal use of memory (to count took 27 minutes and 13MB)
+* `jm.py` took 2.4 hours to run with a maximum resident set size of 123MB (to count took 2.1 hours)
+* `jq` with the `--stream` option took over 2.5 hours to run
 * `jq .[]` took 24 hours to finish
 * `jaq` ran out of memory
-* `jstream -d 1` took 79 minutes with a small memory footprint (7MB maximum resident set size)
+
 
 Times shown are u+s times. [jstream](https://github.com/bcicen/jstream) does not always preserve integer precision.
 

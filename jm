@@ -6,10 +6,11 @@
 # Website: https://github.com/pkoppstein/jm
 # With special thanks to https://github.com/halaxa, the creator of "JSON Machine".
 
-$jmVersion="0.0.8 of 2022.10.15";
+$jmVersion="0.0.9 of 2022.12.06";
 
 # NEWS:
 # 0.0.8 allow process file descriptors
+# 0.0.9 --tag KEYNAME
 
 $bn=basename(__FILE__);
 $home = exec( 'echo ~' ) ;
@@ -20,7 +21,7 @@ $dirs = array(
   dirname(__DIR__).'/vendor/autoload.php'
   );
 
-$autoload = '';	
+$autoload = '';
 foreach ($dirs as &$value) {
   if (is_file($value)) { $autoload = $value; break; }
 }   
@@ -46,14 +47,18 @@ function usage() {
 echo <<<END
 Usage: {$bn} [ OPTIONS ]  [ FILEPATH ... ]
 or:    {$bn} [-h | --help]
-where JSONPOINTER defaults to '' and FILEPATH defaults to stdin, and the other options are:
-     -s
+where FILEPATH defaults to stdin, and the other options are:
+     -s | --tag KEYNAME
      --array
      --bigint_as_string | --recode
      --count | --limit=LIMIT
      --pointer=JSONPOINTER
      --version
-\n
+
+JSONPOINTER defaults to ''.
+
+The --tag option precludes the --array and -s options.
+
 END;
 }
 
@@ -86,7 +91,7 @@ If no JSON Pointer is specified, or if it is specified as the empty
 string (""), then the top-level entity is streamed.
 
 If a JSON Pointer is specified, then all the corresponding entities
-are streamed successively, as illustrated in Example (8) below.
+are streamed successively, as illustrated in Example (9) below.
 
 The --array option causes the streamed items to be presented as a JSON array.
 
@@ -98,6 +103,15 @@ preceded by the file name.
 The --limit option limits the total number of lines that are emitted
 by this script per input file, when streaming.
 
+If --tag KEYNAME is specified, then instead of printing a JSON value, X,
+on a line, the values TAG and X are printed as tab-separated values on
+a single line:
+
+    TAG<tab>X
+
+where TAG is the value associated with the key named KEYNAME if X is
+an object with that key, or else the empty string; that is, if X is
+not a JSON object with the specified key, then no TAG is printed.
 
 Examples:
 (1) jm <<< '[1,"2", {"a": 4}, [5.0000000000000000000000000006]]'
@@ -143,7 +157,14 @@ yields
 1
 2.0e+19
 
-(8) jm --pointer "/-" <<< '[1,[2,3]]'
+(8) jm --tag a <<< '[{"a": 1}, {"a": [2]}, {"b": [3]}]' | sed 's/\t/<tab>/'
+yields
+
+1<tab>{"a":1}
+[2]<tab>{"a":[2]}
+<tab>{"b":[3]}
+
+(9) jm --pointer "/-" <<< '[1,[2,3]]'
 yields
 
 1
@@ -165,7 +186,9 @@ END;
   exit(0);
 }
 
-$options = getopt("hs", ['debug', 'help', 'array', 'bigint_as_string', 'count', 'limit:', 'pointer:', 'recode', 'version'], $rest_index);
+$options = getopt("hs", ['debug', 'help', 'array', 'bigint_as_string', 'count',
+                         'limit:', 'pointer:', 'recode', 'tag:', 'version'],
+                  $rest_index);
 
 if (isset($options['help']))  { usage(); help(); exit(0); }
 if (isset($options['h']))     { usage(); exit(0); }
@@ -176,13 +199,21 @@ if (isset($options['version'])) {
 }
 
 $singleton_option = isset($options['s']);
-$limit_option = isset($options['limit']) ? $options['limit'] : false;
-$count_option = isset($options['count']);
+$count_option  = isset($options['count']);
 $recode_option = isset($options['recode']);
 $bigint_option = isset($options['bigint_as_string']);
-$array_option = isset($options['array']);
+$array_option  = isset($options['array']);
+$limit_option  = isset($options['limit']) ? $options['limit'] : false;
+$tag_option    = isset($options['tag']) ? $options['tag'] : false;
+
 $suffix = isset($options['array']) ? ",\n" : "\n";
 
+# Disallow: --tag if either -s or --array is specified
+if ($tag_option && ($singleton_option || $array_option)) {
+      fwrite(STDERR, __FILE__ .
+       ": the --tag option precludes the --array and -s options.\n");
+  exit(2);
+}
 # Disallow: --bigint_as_string --recode
 if ($recode_option && $bigint_option) {
       fwrite(STDERR, __FILE__ .
@@ -222,6 +253,21 @@ function tweak($value) {
   return $value; 
 }
 
+# maybe tag the value
+function tag($value) {
+   global $tag_option;
+   $v = tweak($value);
+   if ($tag_option) {
+     $json = json_decode($value);  
+     if (is_object($json) and property_exists($json, $tag_option)) {
+        echo tweak(json_encode($json -> $tag_option));
+     }
+     echo "\t" . $v;
+   } else {
+     echo $v;
+   }
+}
+
 function process_objects($filepath, $options) {
   global $limit_option;
   global $count_option;
@@ -240,7 +286,7 @@ function process_objects($filepath, $options) {
   foreach ($iterator as $key => $value) {
      if (gettype($key) == "integer") {
         if ($i > 0 ) { print $suffix; }
-	print tweak($key);
+        print tweak($key);
      } else {
         if ($i > 0 ) { print $suffix; }
         print '{'. $key . ': ' . tweak($value) . "}" ;
@@ -271,7 +317,7 @@ function process($filepath, $options, $singleton_option) {
     if ($array_option) { print "[\n"; }
     foreach ($iterator as $row) {
        if ($i > 0) { echo $suffix; }
-       echo tweak($row);
+       echo tag($row);
        $i++;
        if ($limit_option && ($i >= $limit_option)) {break;}
     }
