@@ -118,9 +118,17 @@ yields:
 [5.0000000000000000000000000006]
 ```
 ```
-(2) jm <<< '{"a": 1, "b": [2,3]}'
+(2) $JM --tag a <<< '[{"a": 1}, {"a": [2]}, {"b": [3]}]' | sed
+'s/\t/<tab>/'
+yields
+./jm.py --tag a <<< '[{"a": 1}, {"a": [2]}, {"b": [3]}]' | sed 's/\t/<tab>/'
+1<tab>{"a": 1}
+[2]<tab>{"a": [2]}
+<tab>{"b": [3]}
+```
+(3) jm <<< '{"a": 1, "b": [2,3]}'
 is equivalent to
-./jm.py --ipath '' --values <<< '{"a": 1, "b": [2,3]}'
+jm.py --ipath '' --values <<< '{"a": 1, "b": [2,3]}'
 
 Both yield:
 1
@@ -128,9 +136,9 @@ Both yield:
 ```
 
 ```
-(3) jm -s <<< '{"a": 1, "b": [2,3]}'
+(4) jm -s <<< '{"a": 1, "b": [2,3]}'
 is equivalent to
-./jm.py --ipath '' -s <<< '{"a": 1, "b": [2,3]}'
+jm.py --ipath '' -s <<< '{"a": 1, "b": [2,3]}'
 
 Both yield:
 {"a": 1}
@@ -138,20 +146,20 @@ Both yield:
 ```
 
 ```
-(4) jm --pointer "/results" <<< '{"results": {"a": 1, "b": [2,3]}}'
+(5) jm --pointer "/results" <<< '{"results": {"a": 1, "b": [2,3]}}'
 is equivalent to
-./jm.py -s --ipath "results" <<< '{"results": {"a": 1, "b": [2,3]}}'
+jm.py --values --ipath "results" <<< '{"results": {"a": 1, "b": [2,3]}}'
 
-Both yield the same stream as (2) above.
+Both yield the same stream as (3) above.
 ```
 ```
-(5) jm --bigint_as_string <<< '[10000000000000000000002, 3.0000000000000000000004]'
+(6) jm --bigint_as_string <<< '[10000000000000000000002, 3.0000000000000000000004]'
 yields
 "10000000000000000000002"
 3
 ```
 ```
-(6) jm --array <<< '{"a": 1, "b": [2,3]}'
+(7) jm --array <<< '{"a": 1, "b": [2,3]}'
 yields
 [
 1,
@@ -159,13 +167,13 @@ yields
 ]
 ```
 ```
-(7) jm --recode <(echo '[1.000000000000000001,20000000000000000003]')
+(8) jm --recode <(echo '[1.000000000000000001,20000000000000000003]')
 yields
 1
 2.0e+19
 ```
 ```
-(8) jm --pointer "/-" <<< '[1,[2,3]]'
+(9) jm --pointer "/-" <<< '[1,[2,3]]'
 yields
 1
 2
@@ -205,10 +213,10 @@ php jm --help
 ### Installation of jm.py
 
 1) Ensure that both simplejson and ijson are installed, e.g.:
-
+```
     pip install simplejson
     pip install ijson
-
+```
 2) Download the file named `jm.py` in the bin directory of this repository.
 
 If at all possible, ensure it is executable (e.g. `chmod +x jm.py`).
