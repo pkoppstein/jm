@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# (C) Copyright Peter Koppstein (peak@princeton.edu)
+# (C) Copyright Peter Koppstein (peak@princeton.edu) 2022
 # License: Apache License 2.0 (see website)
 # Website: https://github.com/pkoppstein/jm
 # Acknowledgements: the authors of ijson (https://pypi.org/project/ijson/)
@@ -12,22 +12,25 @@
 
 # Using simplejson preserves integer literals and apparently decimal literals too.
 
+# NEWS:
+# 0.0.2 # --tag
+
 import sys        # for argv, stderr
 import argparse   # standard
-from argparse import RawTextHelpFormatter
+from argparse import RawTextHelpFormatter  # to print the epilog neatly
 
 import ijson      # incremental parser
 import simplejson # circumvent problem with decimals
 
 bn='jm.py'
-jmVersion='0.0.1 2022.12.05'
+jmVersion='0.0.2 2022.12.06'
 
 counter=0
 counterPerFile=0
 
 epilog=(f"""
 The --limit and --count options are mutually exclusive,
-as are the --s, --keys and --values options.
+as are the --tag, --s, --keys and --values options.
 
 If no filename is specified, input will be taken from stdin.
 
@@ -36,12 +39,22 @@ JSON object that occurs at the top-level or within a very large JSON
 document.  (Losslessly here means without loss of precision of numbers,
 not loss of information in objects with duplicate keys.)
 
-In this document, streaming a JSON array is to be understood as
+In this documentation, streaming a JSON array is to be understood as
 producing a stream of the top-level items in the array (one line per
 item); similarly, streaming a JSON object means producing a stream of
 the top-level keys or values, or of the key-value singleton objects if
 the -s option is specified.  Streaming any other type of JSON entity
 means printing it on a single line.
+
+If --tag KEYNAME is specified, then instead of printing a JSON value, 
+X, on a line, the values TAG and X are printed as tab-separated
+values on a single line:
+
+    TAG<tab>X
+
+where TAG is the value associated with the key named KEYNAME if X is
+an object with that key, or else empty.  That is, if X is not a JSON
+object with the specified key, then no TAG is printed.
 
 The --ipath option is used to specify the location in the input JSON
 of the entity to be streamed.  The default value (namely 'item') is
@@ -60,7 +73,6 @@ To stream a JSON object, the path specified by the --ipath option
 should be the ijson path to that object, and one of the streaming
 options for objects (i.e., one of -k, --keys, -s, --singleton, or
 --values) should be specified.
-
 """ + """
 
 EXAMPLES:
@@ -69,9 +81,9 @@ The following examples assume this script is named jm.py, that it is
 executable, and that the python3 executable can be found. The script
 may also be invoked using a Python 3 interpreter.
 
-jm.py <<< '[{"a": 0}, [{"b": 1}]'
+jm.py <<< '[{"a": 0}, [{"b": 1}]]'
 {"a": 0}
-{"b": 1}
+[{"b": 1}]
 
 jm.py -s <<< '[{"x": 0, "y": 1}]'
 {"x": 0}
@@ -80,6 +92,10 @@ jm.py -s <<< '[{"x": 0, "y": 1}]'
 jm.py --keys <<< '[{"a": 0, "b": 1}]'
 "a"
 "b"
+
+jm.py --tag x <<< '[{"x": "a\t"}, {"y": 0}]' | sed 's/\t/<tab>/'
+"a\t"<tab>{"x": "a\t"}
+<tab>{"y": 0}
 
 jm.py --ipath '' <<< 100000000000000000000000000000000000000000000001
 100000000000000000000000000000000000000000000001
@@ -128,7 +144,7 @@ parser.add_argument(
     nargs ='*')
 
 parser.add_argument('-i', '--ipath',
-    metavar ='ipath',
+    metavar ='IPATH',
     # required = True,
     dest ='ipath',
     action ='store',
@@ -159,6 +175,13 @@ parser.add_argument('--limit', dest ='limit',
     type = int,
     help ='limit the number of JSON values (lines) printed')
 
+parser.add_argument('--tag', dest ='tag',
+    action ='store',
+    metavar ='KEYNAME',
+    help ='instead of emitting a line X of JSON, emit TAG<tab>X where TAG is determined by KEYNAME (see below)'
+    )
+
+
 parser.add_argument('-v', dest ='verbose',
     action ='store_true',
     help ='verbose mode')
@@ -168,8 +191,8 @@ parser.add_argument('-V', '--version', action='version',
 
 args = parser.parse_args()
 
-if (args.singleton + args.values + args.keys) > 1:
-    print(f"{bn}: at most one of the --singleton, --keys and --values options may be specified.", file=sys.stderr)
+if (args.singleton + args.values + args.keys + (args.tag != None)) > 1:
+    print(f"{bn}: at most one of the --tag, --singleton, --keys and --values options may be specified.", file=sys.stderr)
     exit(2)
 
 if (args.limit and args.count):
@@ -192,14 +215,23 @@ def count():
         verbose(f"{bn}: limit {args.limit} reached")
         exit()
 
-def maybePrint(msg):
-    if not args.count:
-        print(msg)
-
 def process_entity(f):
+    tag=args.tag
     objects = ijson.items(f, args.ipath, multiple_values=True)
     for o in objects:
-        maybePrint(simplejson.dumps(o))
+        if not args.count:
+            if tag:
+                  if (type(o) is dict) and (tag in o):
+                        print(simplejson.dumps(o[tag]), end='')
+                  print("\t", end="")
+        print(simplejson.dumps(o))
+        count()
+
+def process_entity_old(f):
+    objects = ijson.items(f, args.ipath, multiple_values=True)
+    for o in objects:
+        if not args.count:
+            print(simplejson.dumps(o))
         count()
 
 def process_object(f):
@@ -213,13 +245,15 @@ def process_object(f):
 def process_values(f):
     kvs = ijson.kvitems(f, args.ipath, multiple_values=True)
     for k, v in kvs:
-        maybePrint(simplejson.dumps(v))
+        if not args.count:
+        	print(simplejson.dumps(v))
         count()
         
 def process_keys(f):
     kvs = ijson.kvitems(f, args.ipath)
     for k, v in kvs:
-        maybePrint(simplejson.dumps(k))
+        if not args.count:
+            print(simplejson.dumps(k))
         count()
         
 def process(f):
