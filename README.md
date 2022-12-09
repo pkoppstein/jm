@@ -126,6 +126,7 @@ yields
 [2]<tab>{"a": [2]}
 <tab>{"b": [3]}
 ```
+```
 (3) jm <<< '{"a": 1, "b": [2,3]}'
 is equivalent to
 jm.py --ipath '' --values <<< '{"a": 1, "b": [2,3]}'
@@ -134,7 +135,6 @@ Both yield:
 1
 [2,3]
 ```
-
 ```
 (4) jm -s <<< '{"a": 1, "b": [2,3]}'
 is equivalent to
@@ -144,7 +144,6 @@ Both yield:
 {"a": 1}
 {"b": [2,3]}
 ```
-
 ```
 (5) jm --pointer "/results" <<< '{"results": {"a": 1, "b": [2,3]}}'
 is equivalent to
