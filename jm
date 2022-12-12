@@ -6,11 +6,12 @@
 # Website: https://github.com/pkoppstein/jm
 # With special thanks to https://github.com/halaxa, the creator of "JSON Machine".
 
-$jmVersion="0.0.9 of 2022.12.06";
+$jmVersion="0.0.10 of 2022.12.10";
 
 # NEWS:
 # 0.0.8 allow process file descriptors
 # 0.0.9 --tag KEYNAME
+# 0.0.10 --keys
 
 $bn=basename(__FILE__);
 $home = exec( 'echo ~' ) ;
@@ -48,7 +49,7 @@ echo <<<END
 Usage: {$bn} [ OPTIONS ]  [ FILEPATH ... ]
 or:    {$bn} [-h | --help]
 where FILEPATH defaults to stdin, and the other options are:
-     -s | --tag KEYNAME
+     -s | --keys | --tag KEYNAME
      --array
      --bigint_as_string | --recode
      --count | --limit=LIMIT
@@ -57,7 +58,7 @@ where FILEPATH defaults to stdin, and the other options are:
 
 JSONPOINTER defaults to ''.
 
-The --tag option precludes the --array and -s options.
+The --tag option precludes the --array, --keys, and -s options.
 
 END;
 }
@@ -66,19 +67,21 @@ function help() {
   global $bn, $jmVersion;  
 echo <<<END
 The -h option gives a usage summary, and --help gives more detailed help.
-The -s option directs that JSON objects be streamed as singleton (single-key) objects.
-The long options are described below.
+The other options are described below.
 
 One of the main uses of {$bn} is to stream losslessly a JSON array or
 JSON object that occurs at the top-level or within a very large JSON structure.
 
 In this document, streaming a JSON array is to be understood as
 producing a stream of the top-level items in the array (one line per
-item); similarly, streaming a JSON object means producing a stream of
-the top-level values or of the key-value singleton objects if the -s
-option is specified.  Streaming other JSON values simply means
-printing them, though the way in which JSON numbers are printed
-depends on the mutually exclusive `--recode` and `--bigint_as_string` options:
+item), or just the indices if the -s or --keys option is specified.
+Similarly, streaming a JSON object means producing a stream of
+the top-level values, or of the key-value singleton objects if the -s
+option is specified, or of just the keys if the --keys option is specified.
+
+Streaming other JSON values simply means printing them, though the way
+in which JSON numbers are printed depends on the mutually exclusive
+`--recode` and `--bigint_as_string` options:
 
   * --recode causes all JSON numbers to be presented as PHP numeric values
       with the potential loss of information this implies;
@@ -91,7 +94,13 @@ If no JSON Pointer is specified, or if it is specified as the empty
 string (""), then the top-level entity is streamed.
 
 If a JSON Pointer is specified, then all the corresponding entities
-are streamed successively, as illustrated in Example (9) below.
+are streamed successively, as illustrated in the last example in the
+Examples section below.
+
+The -s option directs that JSON objects be streamed as singleton (single-key) objects.
+
+The --keys option specifies that JSON objects and arrays be streamed by emitting
+only their keys or indices.
 
 The --array option causes the streamed items to be presented as a JSON array.
 
@@ -122,28 +131,39 @@ yields:
 {"a":4}
 [5.0000000000000000000000000006]
 
-(2) jm <<< '{"a": 1, "b": [2,3]}'
+(2) jm --tag a <<< '[{"a": 1}, {"a": [2]}, {"b": [3]}]' | sed 's/\t/<tab>/'
+yields:
+1<tab>{"a": 1}
+[2]<tab>{"a": [2]}
+<tab>{"b": [3]}
+
+(3) jm --keys <<< '{"a": 1, "b": [2]}'
+yields:
+"a"
+"b"
+
+(4) jm <<< '{"a": 1, "b": [2,3]}'
 yields
 
 1
 [2,3]
 
-(3) jm -s <<< '{"a": 1, "b": [2,3]}'
+(5) jm -s <<< '{"a": 1, "b": [2,3]}'
 yields
 
 {"a": 1}
 {"b": [2,3]}
 
-(4) jm --pointer "/results" <<< '{"results": {"a": 1, "b": [2,3]}}'
+(6) jm --pointer "/results" <<< '{"results": {"a": 1, "b": [2,3]}}'
 yields the same stream as (2) above.
 
-(5) jm --bigint_as_string <<< '[10000000000000000000002, 3.0000000000000000000004]'
+(7) jm --bigint_as_string <<< '[10000000000000000000002, 3.0000000000000000000004]'
 yields
 
 "10000000000000000000002"
 3
 
-(6) jm --array <<< '{"a": 1, "b": [2,3]}'
+(8) jm --array <<< '{"a": 1, "b": [2,3]}'
 yields
 
 [
@@ -151,20 +171,20 @@ yields
 [2,3]
 ]
 
-(7) jm --recode <(echo '[1.000000000000000001,20000000000000000003]')
+(9) jm --recode <(echo '[1.000000000000000001,20000000000000000003]')
 yields
 
 1
 2.0e+19
 
-(8) jm --tag a <<< '[{"a": 1}, {"a": [2]}, {"b": [3]}]' | sed 's/\t/<tab>/'
+(10) jm --tag a <<< '[{"a": 1}, {"a": [2]}, {"b": [3]}]' | sed 's/\t/<tab>/'
 yields
 
 1<tab>{"a":1}
 [2]<tab>{"a":[2]}
 <tab>{"b":[3]}
 
-(9) jm --pointer "/-" <<< '[1,[2,3]]'
+(11) jm --pointer "/-" <<< '[1,[2,3]]'
 yields
 
 1
@@ -186,7 +206,7 @@ END;
   exit(0);
 }
 
-$options = getopt("hs", ['debug', 'help', 'array', 'bigint_as_string', 'count',
+$options = getopt("hs", ['debug', 'help', 'array', 'bigint_as_string', 'count', 'keys',
                          'limit:', 'pointer:', 'recode', 'tag:', 'version'],
                   $rest_index);
 
@@ -200,23 +220,32 @@ if (isset($options['version'])) {
 
 $singleton_option = isset($options['s']);
 $count_option  = isset($options['count']);
+$debug_option  = isset($options['debug']);
 $recode_option = isset($options['recode']);
 $bigint_option = isset($options['bigint_as_string']);
 $array_option  = isset($options['array']);
 $limit_option  = isset($options['limit']) ? $options['limit'] : false;
 $tag_option    = isset($options['tag']) ? $options['tag'] : false;
+$keys_option   = isset($options['keys']);
 
 $suffix = isset($options['array']) ? ",\n" : "\n";
 
-# Disallow: --tag if either -s or --array is specified
-if ($tag_option && ($singleton_option || $array_option)) {
-      fwrite(STDERR, __FILE__ .
-       ": the --tag option precludes the --array and -s options.\n");
+# Disallow: -s --keys
+if ($singleton_option && $keys_option) {
+  fwrite(STDERR, __FILE__ .
+       ": the --s and --keys options are mutually exclusive.\n");
+  exit(2);
+}
+
+# Disallow: --tag if -s, --keys, or --array is specified
+if ($tag_option && ($singleton_option || $array_option || $keys_option)) {
+  fwrite(STDERR, __FILE__ .
+       ": the --tag option precludes the --array, -s and --keys options.\n");
   exit(2);
 }
 # Disallow: --bigint_as_string --recode
 if ($recode_option && $bigint_option) {
-      fwrite(STDERR, __FILE__ .
+   fwrite(STDERR, __FILE__ .
        ": at most one of the --recode and --bigint_as_string options may be specified.\n");
   exit(2);
 }
@@ -234,7 +263,7 @@ if (! $recode_option) {$pointer_options += ['decoder' => new PassThruDecoder ]; 
 
 
 ## Debugging info:
-if (isset($options['debug'])) {
+if ($debug_option) {
    if ($recode_option) { print "NOTE: --recode option was specified\n"; }
    if ($bigint_option) { print "NOTE: --bigint_as_integer was specified\n"; }
    if ($limit_option) { print "NOTE: --limit={$limit_option} was specified\n"; }   
@@ -268,10 +297,13 @@ function tag($value) {
    }
 }
 
+
 function process_objects($filepath, $options) {
-  global $limit_option;
-  global $count_option;
   global $array_option;
+  global $count_option;
+  global $debug_option;
+  global $keys_option;
+  global $limit_option;
   global $suffix;
   $preface = ($filepath == "php://stdin") ? "" : $filepath. ": ";
   $i=0;
@@ -289,7 +321,12 @@ function process_objects($filepath, $options) {
         print tweak($key);
      } else {
         if ($i > 0 ) { print $suffix; }
-        print '{'. $key . ': ' . tweak($value) . "}" ;
+	if ($keys_option) {
+  	  if ($debug_option) { print 'debug: key is ' . $key . "\n"; }
+          print tweak($key);
+	} else {
+          print '{' . tweak($key) . ': ' . tweak($value) . "}" ;
+	}
      }
      $i++;
      if ($limit_option && ($i >= $limit_option)) {break;}
@@ -301,9 +338,10 @@ function process($filepath, $options, $singleton_option) {
   global $limit_option;
   global $count_option;
   global $array_option;
+  global $keys_option;
   global $suffix;
 
-  if ($singleton_option) { process_objects($filepath, $options); }
+  if ($singleton_option || $keys_option) { process_objects($filepath, $options); }
   else {
     $preface = ($filepath == "php://stdin") ? "" : $filepath. ": ";
     $i=0;

@@ -61,7 +61,7 @@ and `--bigint_as_string` options, which are mutually exclusive:
 Usage: jm [ OPTIONS ]  [ FILEPATH ... ]
 or:    jm [-h | --help]
 where FILEPATH defaults to stdin, and the other options are:
-     -s | --tag KEYNAME
+     -s | --keys | --tag KEYNAME
      --array
      --bigint_as_string | --recode
      --count | --limit=LIMIT
@@ -70,8 +70,7 @@ where FILEPATH defaults to stdin, and the other options are:
 
 JSONPOINTER defaults to ''.
 
-The --tag option precludes the --array and -s options.
-
+The --tag option precludes the --array, --keys, and -s options.
 ```
 
 For details, simply invoke the script with the --help option, or
@@ -118,15 +117,23 @@ yields:
 [5.0000000000000000000000000006]
 ```
 ```
-(2) $JM --tag a <<< '[{"a": 1}, {"a": [2]}, {"b": [3]}]' | sed
-'s/\t/<tab>/'
+(2) $JM --tag a <<< '[{"a": 1}, {"a": [2]}, {"b": [3]}]' | sed 's/\t/<tab>/'
 yields
 1<tab>{"a": 1}
 [2]<tab>{"a": [2]}
 <tab>{"b": [3]}
 ```
 ```
-(3) jm <<< '{"a": 1, "b": [2,3]}'
+(3) jm --keys <<< '{"a": 1, "b": [2]}'
+is equivalent to
+jm.py --keys --ipath '' <<< '{"a": 1, "b": [2]}'
+
+Both yield:
+"a"
+"b"
+```
+```
+(4) jm <<< '{"a": 1, "b": [2,3]}'
 is equivalent to
 jm.py --ipath '' --values <<< '{"a": 1, "b": [2,3]}'
 
@@ -135,7 +142,7 @@ Both yield:
 [2,3]
 ```
 ```
-(4) jm -s <<< '{"a": 1, "b": [2,3]}'
+(5) jm -s <<< '{"a": 1, "b": [2,3]}'
 is equivalent to
 jm.py --ipath '' -s <<< '{"a": 1, "b": [2,3]}'
 
@@ -144,20 +151,22 @@ Both yield:
 {"b": [2,3]}
 ```
 ```
-(5) jm --pointer "/results" <<< '{"results": {"a": 1, "b": [2,3]}}'
+(6) jm --pointer "/results" <<< '{"results": {"a": 1, "b": [2,3]}}'
 is equivalent to
 jm.py --values --ipath "results" <<< '{"results": {"a": 1, "b": [2,3]}}'
 
-Both yield the same stream as (3) above.
+Both yield the same stream as (4) above, namely:
+1
+[2, 3]
 ```
 ```
-(6) jm --bigint_as_string <<< '[10000000000000000000002, 3.0000000000000000000004]'
+(7) jm --bigint_as_string <<< '[10000000000000000000002, 3.0000000000000000000004]'
 yields
 "10000000000000000000002"
 3
 ```
 ```
-(7) jm --array <<< '{"a": 1, "b": [2,3]}'
+(8) jm --array <<< '{"a": 1, "b": [2,3]}'
 yields
 [
 1,
@@ -165,13 +174,13 @@ yields
 ]
 ```
 ```
-(8) jm --recode <(echo '[1.000000000000000001,20000000000000000003]')
+(9) jm --recode <(echo '[1.000000000000000001,20000000000000000003]')
 yields
 1
 2.0e+19
 ```
 ```
-(9) jm --pointer "/-" <<< '[1,[2,3]]'
+(10) jm --pointer "/-" <<< '[1,[2,3]]'
 yields
 1
 2
