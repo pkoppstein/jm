@@ -37,7 +37,7 @@ simply means printing them.
 ## jm and jm.py similarities and differences
 The two scripts are quite similar in terms of capabilties and
 typical usage, but there are important differences, notably in the way
-paths to subdocuments are specified: jm uses JSONPATH, whereas jm.py
+paths to subdocuments are specified: jm uses JSON Pointer (RFC 6901), whereas jm.py
 has a less comprehensive notation.  As already illustrated, however,
 typically no path need be specified at all.
 
