@@ -53,12 +53,14 @@ where FILEPATH defaults to stdin, and the other options are:
      --array
      --bigint_as_string | --recode
      --count | --limit=LIMIT
-     --pointer=JSONPOINTER
+     --pointer=JSONPOINTER *
      --version
+
+The --tag option precludes the --array, --keys, and -s options.
 
 JSONPOINTER defaults to ''.
 
-The --tag option precludes the --array, --keys, and -s options.
+* Several pointers may be specified by repeating the --pointer option.
 
 END;
 }
@@ -154,16 +156,23 @@ yields
 {"a": 1}
 {"b": [2,3]}
 
-(6) jm --pointer "/results" <<< '{"results": {"a": 1, "b": [2,3]}}'
+(6) jm --pointer /a --pointer /b <<< '{"a": 1, "b": [2,3]}'
+yields
+
+1
+2
+3
+
+(7) jm --pointer /results <<< '{"results": {"a": 1, "b": [2,3]}}'
 yields the same stream as (2) above.
 
-(7) jm --bigint_as_string <<< '[10000000000000000000002, 3.0000000000000000000004]'
+(8) jm --bigint_as_string <<< '[10000000000000000000002, 3.0000000000000000000004]'
 yields
 
 "10000000000000000000002"
 3
 
-(8) jm --array <<< '{"a": 1, "b": [2,3]}'
+(9) jm --array <<< '{"a": 1, "b": [2,3]}'
 yields
 
 [
@@ -171,20 +180,20 @@ yields
 [2,3]
 ]
 
-(9) jm --recode <(echo '[1.000000000000000001,20000000000000000003]')
+(10) jm --recode <(echo '[1.000000000000000001,20000000000000000003]')
 yields
 
 1
 2.0e+19
 
-(10) jm --tag a <<< '[{"a": 1}, {"a": [2]}, {"b": [3]}]' | sed 's/\t/<tab>/'
+(11) jm --tag a <<< '[{"a": 1}, {"a": [2]}, {"b": [3]}]' | sed 's/\t/<tab>/'
 yields
 
 1<tab>{"a":1}
 [2]<tab>{"a":[2]}
 <tab>{"b":[3]}
 
-(11) jm --pointer "/-" <<< '[1,[2,3]]'
+(12) jm --pointer "/-" <<< '[1,[2,3]]'
 yields
 
 1

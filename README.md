@@ -65,12 +65,14 @@ where FILEPATH defaults to stdin, and the other options are:
      --array
      --bigint_as_string | --recode
      --count | --limit=LIMIT
-     --pointer=JSONPOINTER
+     --pointer=JSONPOINTER *
      --version
+
+The --tag option precludes the --array, --keys, and -s options.
 
 JSONPOINTER defaults to ''.
 
-The --tag option precludes the --array, --keys, and -s options.
+* Several pointers may be specified by repeating the --pointer option.
 ```
 
 For details, simply invoke the script with the --help option, or
