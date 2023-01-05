@@ -6,7 +6,7 @@
 # Website: https://github.com/pkoppstein/jm
 # With special thanks to https://github.com/halaxa, the creator of "JSON Machine".
 
-$jmVersion="0.0.10 of 2022.12.10";
+$jmVersion="0.0.11 of 2023.01.04";
 
 # NEWS:
 # 0.0.8 allow process file descriptors
@@ -223,7 +223,7 @@ if (isset($options['help']))  { usage(); help(); exit(0); }
 if (isset($options['h']))     { usage(); exit(0); }
 
 if (isset($options['version'])) {
-  print "$bn version ${jmVersion}\n";
+  print "$bn version {$jmVersion}\n";
   exit(0);
 }
 
