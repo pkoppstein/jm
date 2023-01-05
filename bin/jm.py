@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# (C) Copyright Peter Koppstein (peak@princeton.edu) 2022
+# (C) Copyright Peter Koppstein (peak@princeton.edu) 2022, 2023
 # License: Apache License 2.0 (see website)
 # Website: https://github.com/pkoppstein/jm
 # Acknowledgements: the authors of ijson (https://pypi.org/project/ijson/)
@@ -12,8 +12,12 @@
 
 # Using simplejson preserves integer literals and apparently decimal literals too.
 
+# Notes on ijson:
+#   multiple_values=True # allow a stream of JSON
+
 # NEWS:
 # 0.0.2 # --tag
+# 0.0.3 # use multiple_values=True consistently
 
 import sys        # for argv, stderr
 import argparse   # standard
@@ -23,7 +27,7 @@ import ijson      # incremental parser
 import simplejson # circumvent problem with decimals
 
 bn='jm.py'
-jmVersion='0.0.2 2022.12.06'
+jmVersion='0.0.3 2023.01.04'
 
 counter=0
 counterPerFile=0
@@ -33,6 +37,7 @@ The --limit and --count options are mutually exclusive,
 as are the --tag, --s, --keys and --values options.
 
 If no filename is specified, input will be taken from stdin.
+Each input source can contain one or more top-level JSON entities.
 
 One of the main uses of {bn} is to stream losslessly a JSON array or
 JSON object that occurs at the top-level or within a very large JSON 
@@ -45,6 +50,9 @@ item); similarly, streaming a JSON object means producing a stream of
 the top-level keys or values, or of the key-value singleton objects if
 the -s option is specified.  Streaming any other type of JSON entity
 means printing it on a single line.
+
+The default IPATH value is 'item', which is suitable for streaming a
+top-level array.  See below for details about streaming JSON objects.
 
 If --tag KEYNAME is specified, then instead of printing a JSON value, 
 X, on a line, the values TAG and X are printed as tab-separated
@@ -59,8 +67,9 @@ object with the specified key, then no TAG is printed.
 The --ipath option is used to specify the location in the input JSON
 of the entity to be streamed.  The default value (namely 'item') is
 appropriate if the input is a JSON array.  It is not an error for
-there to be a mismatch between the path and the input JSON but if
-there is a mismatch, no JSON output will be produced.
+there to be a mismatch between the path and the type of the
+corresponding JSON entity but if there is a mismatch, no JSON output
+will be produced.
 
 The ijson path for the top-level is ''. In general, an ijson path is a
 string consisting of key names and/or the keyword 'item', joined by a
@@ -89,9 +98,10 @@ jm.py -s <<< '[{"x": 0, "y": 1}]'
 {"x": 0}
 {"y": 1}
 
-jm.py --keys <<< '[{"a": 0, "b": 1}]'
+jm.py --keys <<< '[{"a": 0, "b": 1}] [{"c": 2}]'
 "a"
 "b"
+"c"
 
 jm.py --tag x <<< '[{"x": "a\t"}, {"y": 0}]' | sed 's/\t/<tab>/'
 "a\t"<tab>{"x": "a\t"}
@@ -149,7 +159,7 @@ parser.add_argument('-i', '--ipath',
     dest ='ipath',
     action ='store',
     default='item',
-    help ='the ijson path to the object or array to be streamed')
+    help ='the ijson path to the object or array to be streamed (defaut: item)')
 
 parser.add_argument('-s', '--singleton', dest ='singleton',
     action ='store_true',    # on/off flag
@@ -224,7 +234,7 @@ def process_entity(f):
                   if (type(o) is dict) and (tag in o):
                         print(simplejson.dumps(o[tag]), end='')
                   print("\t", end="")
-        print(simplejson.dumps(o))
+            print(simplejson.dumps(o))
         count()
 
 def process_entity_old(f):
@@ -250,7 +260,7 @@ def process_values(f):
         count()
         
 def process_keys(f):
-    kvs = ijson.kvitems(f, args.ipath)
+    kvs = ijson.kvitems(f, args.ipath, multiple_values=True)
     for k, v in kvs:
         if not args.count:
             print(simplejson.dumps(k))
@@ -265,7 +275,7 @@ def process(f):
         process_values(f)
     else:
         process_entity(f)
-        
+
 verbose(args)
 # verbose(f"{bn}: ipath is {args.ipath}")
 
