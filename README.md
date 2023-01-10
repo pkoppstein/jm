@@ -17,8 +17,8 @@ or
     jm.py input.json
 
 For large inputs, `jm` is typically 3 or more times faster than `jm.py` and
-consumes significantly less memory, but Pythonistas might find `jm.py`
-of interest as it is easy to modify.
+consumes significantly less memory, but jm.py can be made to ignore
+comments, and Pythonistas might find `jm.py` of interest as it is easy to modify.
 
 `jm` requires PHP and requires the installation of
 [JSON Machine](https://github.com/halaxa/json-machine) package.
@@ -40,6 +40,9 @@ typical usage, but there are important differences, notably in the way
 paths to subdocuments are specified: jm uses JSON Pointer (RFC 6901), whereas jm.py
 has a less comprehensive notation.  As already illustrated, however,
 typically no path need be specified at all.
+
+If the yajl2 library has been installed (as by `brew install yajl`)
+then jm.py will ignore /* C-style comments. */
 
 ### Numbers
 

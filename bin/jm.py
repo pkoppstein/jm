@@ -18,6 +18,7 @@
 # NEWS:
 # 0.0.2 # --tag
 # 0.0.3 # use multiple_values=True consistently
+# 0.0.4 # use allow_comments=True if ijson.backend is "yajl2" or "yajl2_cffi") 
 
 import sys        # for argv, stderr
 import argparse   # standard
@@ -27,7 +28,7 @@ import ijson      # incremental parser
 import simplejson # circumvent problem with decimals
 
 bn='jm.py'
-jmVersion='0.0.3 2023.01.04'
+jmVersion='0.0.4 2023.01.09'
 
 counter=0
 counterPerFile=0
@@ -74,14 +75,18 @@ will be produced.
 The ijson path for the top-level is ''. In general, an ijson path is a
 string consisting of key names and/or the keyword 'item', joined by a
 period. The keyword 'item' should be used where an array occurs but
-may also be used if the key name is 'item'.  If a key includes a
+may also be used if the key name is 'item'.  If a key name includes a
 period, the period need not be escaped.  These points are illustrated
 in the last few examples below.
 
 To stream a JSON object, the path specified by the --ipath option
 should be the ijson path to that object, and one of the streaming
 options for objects (i.e., one of -k, --keys, -s, --singleton, or
---values) should be specified.
+--values) should be specified; otherwise the object at the specified
+location will be printed on a single line.
+
+If the yajl library has been installed (e.g. via `brew install yajl`),
+then /* C-style comments */ in the input will be ignored.
 """ + """
 
 EXAMPLES:
@@ -98,7 +103,7 @@ jm.py -s <<< '[{"x": 0, "y": 1}]'
 {"x": 0}
 {"y": 1}
 
-jm.py --keys <<< '[{"a": 0, "b": 1}] [{"c": 2}]'
+jm.py --keys <<< '[{"a": 0, "b": 1}]   [{"c": 2}]'
 "a"
 "b"
 "c"
@@ -227,7 +232,7 @@ def count():
 
 def process_entity(f):
     tag=args.tag
-    objects = ijson.items(f, args.ipath, multiple_values=True)
+    objects = ijson.items(f, args.ipath, multiple_values=True, allow_comments=args.allow_comments)
     for o in objects:
         if not args.count:
             if tag:
@@ -238,14 +243,14 @@ def process_entity(f):
         count()
 
 def process_entity_old(f):
-    objects = ijson.items(f, args.ipath, multiple_values=True)
+    objects = ijson.items(f, args.ipath, multiple_values=True, allow_comments=args.allow_comments)
     for o in objects:
         if not args.count:
             print(simplejson.dumps(o))
         count()
 
 def process_object(f):
-    kvs = ijson.kvitems(f, args.ipath, multiple_values=True)
+    kvs = ijson.kvitems(f, args.ipath, multiple_values=True, allow_comments=args.allow_comments)
     for k, v in kvs:
         if not args.count:
           print('{' + simplejson.dumps(k) + ':', simplejson.dumps(v), end='')
@@ -253,14 +258,14 @@ def process_object(f):
         count()
 
 def process_values(f):
-    kvs = ijson.kvitems(f, args.ipath, multiple_values=True)
+    kvs = ijson.kvitems(f, args.ipath, multiple_values=True, allow_comments=args.allow_comments)
     for k, v in kvs:
         if not args.count:
         	print(simplejson.dumps(v))
         count()
         
 def process_keys(f):
-    kvs = ijson.kvitems(f, args.ipath, multiple_values=True)
+    kvs = ijson.kvitems(f, args.ipath, multiple_values=True, allow_comments=args.allow_comments)
     for k, v in kvs:
         if not args.count:
             print(simplejson.dumps(k))
@@ -275,6 +280,9 @@ def process(f):
         process_values(f)
     else:
         process_entity(f)
+
+verbose("ijson.backend is " + ijson.backend)
+args.allow_comments=(ijson.backend == "yajl2_cffi" or ijson.backend == "yajl2" )
 
 verbose(args)
 # verbose(f"{bn}: ipath is {args.ipath}")
