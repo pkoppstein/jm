@@ -265,10 +265,10 @@ compute the length of the .data array (i.e. 1829779):
 |   1.3s |     1.7  | wc -l
 | 169s   |     1.3  | jm --pointer=/data --count
 | 306s   |     1.8  | jm.py -i data.item --count
-|  40s   |  3987.   | jq '.data|length'
-|  42s   |  6442.   | gojq '.data|length'
-|  53s   |  7330.   | fq '.data|length'
-|  46s   | 10346.   | jaq '.data|length'
+|  40s   |  3987.   | jq '.data&#124;length'
+|  42s   |  6442.   | gojq '.data&#124;length'
+|  53s   |  7330.   | fq '.data&#124;length'
+|  46s   | 10346.   | jaq '.data&#124;length'
 
 
 In the second table, the queries extract the value of .meta.view.createdAt (i.e. 1403103517):
