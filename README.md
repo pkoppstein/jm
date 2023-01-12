@@ -261,27 +261,27 @@ Except for this first line, the queries in the first table
 compute the length of the .data array (i.e. 1829779):
 
 | u+s    | mrss (MB)| command
-| -------|----------|--------
+| --:    |   --:    |--------
 |   1.3s |     1.7  | wc -l
 | 169s   |     1.3  | jm --pointer=/data --count
 | 306s   |     1.8  | jm.py -i data.item --count
-|  40s   |  3987.   | jq '.data&#124;length'
-|  42s   |  6442.   | gojq '.data&#124;length'
-|  53s   |  7330.   | fq '.data&#124;length'
-|  46s   | 10346.   | jaq '.data&#124;length'
+|  40s   |  3987.0  | jq '.data&#124;length'
+|  42s   |  6442.0  | gojq '.data&#124;length'
+|  53s   |  7330.0  | fq '.data&#124;length'
+|  46s   | 10346.0  | jaq '.data&#124;length'
 
 
 In the second table, the queries extract the value of .meta.view.createdAt (i.e. 1403103517):
 
 | u+s     | mrss    | command
-| --------|---------|--------
-| 221.4   |     2.0 | jq -n --stream "$CMD"
-|   0.05s |    13.6 | jm --pointer=/meta/view/createdAt
+| --:     |   --:   |--------
+| 221.4s  |     2.0 | jq -n --stream "$CMD"
+|   0.1s  |    13.6 | jm --pointer=/meta/view/createdAt
 |   0.2s  |    17.6 | jm.py -i meta.view.createdAt --limit 1
 | 233.0s  |    18.0 | jm.py -i meta.view.createdAt
 |  50.3s  |  3869.1 | jq .meta.view.createdAt
 |  50.3s  |  6108.6 | gojq .meta.view.createdAt
-| 697.8   |  8051.0 | gojq -n --stream "$CMD"
+| 697.8s  |  8051.0 | gojq -n --stream "$CMD"
 |  57.3s  |  8252.4 | fq .meta.view.createdAt
 |  56.2s  | 10474.1 | jaq .meta.view.createdAt
 
