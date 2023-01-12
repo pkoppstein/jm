@@ -229,7 +229,13 @@ php jm --help
     pip install simplejson
     pip install ijson
 ```
-2) Download the file named `jm.py` in the bin directory of this repository.
+
+2) Install yajl (OPTIONAL)
+
+If you want to strip /* C-style comments */ from the input files,
+then ensure the yajl library has been installed (e.g. via `brew install yajl`).
+
+3) Download the file named `jm.py` in the bin directory of this repository.
 
 If at all possible, ensure it is executable (e.g. `chmod +x jm.py`).
 Otherwise, it can still be run as a python3 script, e.g. for help:
@@ -237,19 +243,58 @@ Otherwise, it can still be run as a python3 script, e.g. for help:
 python3 jm.py --help
 ```
 
-### Performance Comparison
+### Performance Comparisons
 
-For a 10G file consisting of a single JSON array:
+The following two tables show some performance metrics for two queries
+against a 1.5GB "real-world" JSON data set: the traffic violations
+data set from Montgomery County, MD.  The file is about 1.5GB.
+Further details about it are given below.
 
-* `jstream -d 1` took 79 minutes with a small memory footprint (7MB maximum resident set size)
-* `jm` took 90 minutes to run with minimal use of memory (to count took 27 minutes and 13MB)
-* `jm.py` took 2.4 hours to run with a maximum resident set size of 123MB (to count took 2.1 hours)
-* `jq` with the `--stream` option took over 2.5 hours to run
-* `jq .[]` took 24 hours to finish
-* `jaq` ran out of memory
+The entries in the tables are based on runs of /usr/bin/time -lp on a 3GHz Mac Mini.
+
+In the tables, u+s is the user+system time in seconds, and mrss is the
+maximum resident set size in MB. To facilitate comparison, the first
+entry of the first table shows metrics for the `wc` command for
+counting the number of lines in the file.
+
+Except for this first line, the queries in the first table
+compute the length of the .data array (i.e. 1829779):
+
+| u+s    | mrss (MB)| command
+| -------|----------|--------
+|   1.3s |     1.7  | wc -l
+| 169s   |     1.3  | jm --pointer=/data --count
+| 306s   |     1.8  | jm.py -i data.item --count
+|  40s   |  3987.   | jq '.data|length'
+|  42s   |  6442.   | gojq '.data|length'
+|  53s   |  7330.   | fq '.data|length'
+|  46s   | 10346.   | jaq '.data|length'
 
 
-Times shown are u+s times. [jstream](https://github.com/bcicen/jstream) does not always preserve integer precision.
+In the second table, the queries extract the value of .meta.view.createdAt (i.e. 1403103517):
+
+| u+s     | mrss    | command
+| --------|---------|--------
+| 221.4   |     2.0 | jq -n --stream "$CMD"
+|   0.05s |    13.6 | jm --pointer=/meta/view/createdAt
+|   0.2s  |    17.6 | jm.py -i meta.view.createdAt --limit 1
+| 233.0s  |    18.0 | jm.py -i meta.view.createdAt
+|  50.3s  |  3869.1 | jq .meta.view.createdAt
+|  50.3s  |  6108.6 | gojq .meta.view.createdAt
+| 697.8   |  8051.0 | gojq -n --stream "$CMD"
+|  57.3s  |  8252.4 | fq .meta.view.createdAt
+|  56.2s  | 10474.1 | jaq .meta.view.createdAt
+
+
+CMD='first(inputs|select(length==2 and .[1]==["meta","view","createdAt"]))|.[1]'
+
+The file used in all cases was obtained on Jan 11, 2023
+from https://data.montgomerycountymd.gov/api/views/4mse-ku6q/rows.json
+It is archived at
+https://web.archive.org/web/20230112063656/https://data.montgomerycountymd.gov/api/views/4mse-ku6q/rows.json
+
+The file size is 1,459,336,880 bytes,
+and the .meta.view.createdAt value in the file is 1403103517.
 
 ### Additional Documentation
 
