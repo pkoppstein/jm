@@ -273,20 +273,20 @@ compute the length of the .data array (i.e. 1829779):
 
 In the second table, the queries extract the value of .meta.view.createdAt (i.e. 1403103517):
 
-| u+s     | mrss    | command
+| u+s     |mrss (MB)| command
 | --:     |   --:   |--------
-| 221.4s  |     2.0 | jq -n --stream "$CMD"
+|   0.0s  |     2.0 | jq -n --stream "$CMD"
+|   0.0s  |     3.4 | gojq -n --stream "$CMD"
 |   0.1s  |    13.6 | jm --pointer=/meta/view/createdAt
 |   0.2s  |    17.6 | jm.py -i meta.view.createdAt --limit 1
 | 233.0s  |    18.0 | jm.py -i meta.view.createdAt
 |  50.3s  |  3869.1 | jq .meta.view.createdAt
 |  50.3s  |  6108.6 | gojq .meta.view.createdAt
-| 697.8s  |  8051.0 | gojq -n --stream "$CMD"
 |  57.3s  |  8252.4 | fq .meta.view.createdAt
 |  56.2s  | 10474.1 | jaq .meta.view.createdAt
 
 
-CMD='first(inputs|select(length==2 and .[1]==["meta","view","createdAt"]))|.[1]'
+CMD='first(inputs|select(length==2 and .[0]==["meta","view","createdAt"]))|.[1]'
 
 The file used in all cases was obtained on Jan 11, 2023
 from https://data.montgomerycountymd.gov/api/views/4mse-ku6q/rows.json
