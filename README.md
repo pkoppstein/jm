@@ -1,10 +1,10 @@
 # jm and jm.py
 
-`jm` and `jm.py` are scripts which make it easy to splat (that is, to
-stream) JSON arrays or JSON objects losslessly, even if they occur in
-very large JSON structures.  (Losslessly here refers primarily to
-numeric precision, not the handling of duplicate keys within JSON
-objects.)
+`jm` and `jm.py` are scripts which make it easy to splat (that is to
+stream the top-level values in) JSON arrays or JSON objects
+losslessly, even if they occur in very large JSON documents.
+(Losslessly here refers primarily to numeric precision, but jm
+also handles duplicate keys within a JSON object losslessly as well.)
 
 Once installed, each script is typically trivial or very easy to use, e.g.
 to splat the top-level array of a JSON document in a file named
@@ -16,22 +16,32 @@ or
 
     jm.py input.json
 
+For example:
+
+
+    $ jm <<< '{"a": 1,"b": "2", "c": {"d": 3} }'
+    1
+    "2"
+    {"d":3}
+
+Further examples and variations are shown below.
+
 For large inputs, `jm` is typically 3 or more times faster than `jm.py` and
 consumes significantly less memory, but jm.py can be made to ignore
 comments, and Pythonistas might find `jm.py` of interest as it is easy to modify.
 
-`jm` requires PHP and requires the installation of
+`jm` requires PHP 8 and requires the installation of
 [JSON Machine](https://github.com/halaxa/json-machine) package.
 
 `jm.py` requires Python 3, and requires the installation of the
 [ijson](https://pypi.org/project/ijson) package.
 
 ## Terminology
-In this document, streaming a JSON array is to be understood as
+In this document, splatting a JSON array is to be understood as
 producing a stream of the top-level items in the array (one line per
 item), and similarly, streaming a JSON object means producing a stream
 of the top-level values, or of the corresponding key-value singleton
-objects if the -s option is specified.  Streaming other JSON values
+objects if the -s option is specified.  Splatting other JSON values
 simply means printing them.
 
 ## jm and jm.py similarities and differences

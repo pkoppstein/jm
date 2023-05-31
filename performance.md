@@ -8,6 +8,8 @@ preserve integer precision. The same is true of jq up to and including
 jq 1.6.
 
 
+Unless otherwise indicated, jaq version 0.10 (with hifijson) was used.
+
 |u+s   | mrss  | command
 |----- | ----- | -------
 |0.00s |  3.4MB| gojq --stream -cn 'limit(1;inputs &#124; select(length==2) &#124; .[1])' < $FILE
@@ -20,16 +22,33 @@ For a 10G file consisting of a single JSON array:
 
 |u+s   | mrss  | command
 |----- | ----- |  -------
-|30m   | 13MB  | `gojq --stream`
-|79m   | 7MB   | `jstream -d 1`
-|90m   | 13MB  | `jm`
-|2.4h  | 123MB | `jm.py`
-|2.5h  |       | `jq --stream`
-|24h   |       | `jq .[]`
+|134s  | 10.6MB| jaq 'first(.[])'
+|130s  | 11.3MB| jaq '.[0]'
+-------------------------------
+|25m   | 10MB  | jaq .[]
+|30m   | 13MB  | gojq --stream .
+|53m   |  1.9MB| jq --stream .
+|79m   |  7MB  | jstream -d 1
+|90m   | 13MB  | jm
+|2.4h  |123MB  | jm.py
+|24h   |       | jq .[]
 
-`jaq` ran out of memory.
 
-For the 10GB file:
-* `jm` took 27 minutes and and 13MB mrss to report the length of the array.
-* `jm.py` took 2.1 hours to report the length of the array.
+To determine the length of the array in the same 10GB file:
+|u+s   | mrss  | command
+|----- | ----- |  -------
+|134s  | 9.9MB | gojq length ???? failed after consuming 100GB
+| 27m  |13  MB | jm --count
+| 54m  |18  MB | jm.py --count
+
+
+/usr/bin/time -lp jq --stream . 1e9.json > /dev/null
+user 3183.99
+sys    40.35 
+53m
+             1 933 312  maximum resident set size
+             1200128  peak memory footprint
+
+previously
+|2.5h  |       | jq --stream . 
 
